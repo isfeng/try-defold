@@ -1,0 +1,57 @@
+local ships = {}
+
+local function follow_mouse(id, angle, dt)
+	local vx = math.cos(angle) * 100 * dt
+	local vy = math.sin(angle) * 100 * dt
+	local pao = go.get_position(id)
+	go.set_position(vmath.vector3(pao.x + vx, pao.y + vy, 0), id)
+end
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	self.velocity = vmath.vector3()
+	self.input = vmath.vector3()
+	-- self.mouse_position = vmath.vector3()
+end
+
+function update(self, dt)
+	if vmath.length_sqr(self.input) > 1 then
+		self.input = vmath.normalize(self.input)
+	end
+
+	local acceleration = self.input * 50       -- [2]
+
+	local dv = acceleration * dt                -- [3]
+	local v0 = self.velocity                    -- [4]
+	local v1 = self.velocity + dv               -- [5]
+	local movement = (v0 + v1) * dt * 0.5       -- [6]
+	local p = go.get_position()
+	go.set_position(p + movement)               -- [7]
+
+	self.velocity = v1                          -- [8]
+	self.input = vmath.vector3()
+	
+	for id, map in ipairs(ships) do
+		-- print(self.mouse_position)
+		follow_mouse(map.id, map.angle, dt)
+	end
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("up") then
+		self.input.y = 1
+	elseif action_id == hash("down") then
+		self.input.y = -1
+	elseif action_id == hash("left") then
+		self.input.x = -1
+	elseif action_id == hash("right") then
+		self.input.x = 1
+	elseif action_id == hash("click") and action.pressed then
+		local i = factory.create("/spaceship#factory")
+		local paotai = go.get_position();
+		local dx = action.x - paotai.x
+		local dy = action.y - paotai.y
+		local angle = math.atan2(dy, dx)
+		table.insert(ships, {id = i, angle = angle})
+	end
+end
